@@ -1,0 +1,179 @@
+def equal_to_24(a,b,c,d):
+    
+    prod_24 = [(1,24), (2,12), (3,8), (4,6)]            # 24 is {left}  {+-*/}  {right}
+    sum_24 = [(i,24-i) for i in range(13)]              # calculate all possible combinations for every operation
+    div_24 = [(24*i, i) for i in range(1,101)]
+    diff_24 = [(i+24, i) for i in range(1,146)]
+
+
+    def decomposition_2(N, a, b):                                       # decomposite N with (a, b) (NO fractions)
+        if not(isinstance(a, int)) or not(isinstance(b, int)):
+            return ''
+        if a + b == N:
+            return f'{a}+{b}'
+        elif a - b == N:
+            return f'{a}-{b}'
+        elif b - a == N:
+            return f'{b}-{a}'
+        elif a * b == N:
+            return f'{a}*{b}'
+        elif b != 0 and a // b == N and a % b == 0:
+            return f'{a}/{b}'
+        elif a != 0 and  b // a == N and b % a == 0:
+            return f'{b}/{a}'
+        else:
+            return ''
+
+
+    def decomposition_23(N, a1, a2, b, operation):                      # decomposite N with (a,  b) where a = (a1 {+-*/} a2) (NO fractions)
+        if operation == '+': a = a1 + a2                                # uses in decomposition_3
+        elif operation == '-': a = a1 - a2
+        elif operation == '*': a = a1 * a2
+        elif operation == '/': a = (a1//a2 if a1%a2==0 else a1/a2) if a2!=0 else None
+
+        if not(isinstance(a, int)) or not(isinstance(b, int)):
+            return ''
+
+        if a + b == N:
+            return f'{a1}{operation}{a2}+{b}'
+        elif a - b == N:
+            return f'{a1}{operation}{a2}-{b}'
+        elif b - a == N:
+            return f'{b}-({a1}{operation}{a2})'
+        elif a * b == N:
+            if operation in ['*', '/']:
+                return f'{a1}{operation}{a2}*{b}'
+            else:
+                return f'({a1}{operation}{a2})*{b}'
+        elif b != 0 and a // b == N and a % b == 0:
+            if operation in ['*', '/']:
+                return f'{a1}{operation}{a2}/{b}'
+            else:
+                return f'({a1}{operation}{a2})/{b}'
+        elif a != 0 and  b // a == N and b % a == 0:
+            if operation in ['*', '/']:
+                return f'{b}/{a1}{operation}{a2}'  
+            else:
+                return f'{b}/({a1}{operation}{a2})' 
+        else:
+            return ''
+
+
+    def decomposition_3(N, a, b, c):                  # decomposite N with (a, b, c) (NO fractions)
+        sum_pairs = [(a, b, c), (a, c, b), (b, c, a)]                                             # [(a+b, c), (a+c, b), (b+c, a)]
+        prod_pairs = [(a, b, c), (a, c, b), (b, c, a)]                                            # [(a*b, c), (a*c, b), (b*c, a)]
+        diff_pairs = [(a,b,c), (b,a,c), (a,c,b), (c,a,b), (b,c,a), (c,b,a)]                       # [(x-y, z) for (x,y,z) in [(a,b,c), (b,a,c), (a,c,b), (c,a,b), (b,c,a), (c,b,a)]]
+        div_pairs = [(a,b,c), (b,a,c), (a,c,b), (c,a,b), (b,c,a), (c,b,a)]                        #[((x, y, z) if x%y==0 else (x/y, z) if y!=0 else (None, None)) for (x,y,z) in [(a,b,c), (b,a,c), (a,c,b), (c,a,b), (b,c,a), (c,b,a)]]
+
+        for i in range(3):
+            x_sum = decomposition_23(N, *sum_pairs[i], '+')
+            x_prod = decomposition_23(N, *prod_pairs[i], '*')
+            if x_sum:
+                return x_sum
+            if x_prod:
+                return x_prod
+        for i in range(6):
+            if isinstance(diff_pairs[i][0], int) and isinstance(diff_pairs[i][0], int) and diff_pairs[i][0] >= 0 and diff_pairs[i][1] >= 0:
+                x_diff = decomposition_23(N, *diff_pairs[i], '-')
+                x_div = decomposition_23(N, *div_pairs[i], '/')
+            if x_diff:
+                return x_diff
+            if x_div:
+                return x_div
+
+        if not(x_sum or x_prod or x_diff or x_div):
+            return ''
+
+
+    def search(var_24, pairs, triads, operation):           # for any {operation} find if there is some combination by pairs or triads (see next)
+        op = operation
+        for t1, t2 in var_24:
+            for p1, p2 in pairs:
+                left = decomposition_2(t1, *p1)
+                right = decomposition_2(t2, *p2)
+                if left and right:
+                    return f'({left}){op}({right})'
+                left = decomposition_2(t2, *p1)
+                right = decomposition_2(t1, *p2)
+                if left and right:
+                    if op == '-' or op == '/':
+                        return f'({right}){op}({left})'
+                    else:
+                        return f'({left}){op}({right})'
+
+            for x, y in triads:
+                if t1==x:
+                    right = decomposition_3(t2, *y)
+                    if right:
+                        return f'{x}{op}({right})'
+                if t2==x:
+                    right = decomposition_3(t1, *y)
+                    if right:
+                        if op == '-' or op == '/':
+                            return f'({right}){op}{x}'
+                        else:
+                            return f'{x}{op}({right})'
+        return ''
+
+
+    def tetrad(a, b, c, d):                                                 # 24 is {left}  {+-*/}  {right}
+        pairs = [((a,b), (c,d)), ((a,c), (b,d)), ((a,d), (c,b))]            # and may be 2 variants:
+        triads = [(a, (b,c,d)),(b, (a,c,d)),(c, (a,b,d)),(d,(a,b,c))]       # if one side is combination of 2 elements, then the other side too (pairs)
+                                                                            # if one side is combination of 3 elements, then the other side is jast last element as is (triads)
+        s = search(sum_24, pairs, triads, '+')
+        if s:
+            # print('s')
+            return s
+        p = search(prod_24, pairs, triads, '*')
+        if p: 
+            # print('p')
+            return p
+        d = search(diff_24, pairs, triads, '-')
+        if d: 
+            # print('d')
+            return d
+        v = search(div_24, pairs, triads, '/')
+        if v: 
+            # print('dv')
+            return v
+
+    def frac_var(a,b,c,d):
+        from itertools import permutations
+        abcd = list(permutations([a,b,c,d],4))
+        for a,b,c,d in abcd:
+
+            if b!=0 and d!=0 and abs((a/b + c/d) - 24) < 0.001:
+                return f'{a}/{b}+{c}/{d}'
+
+            elif b!=0 and d!=0 and  abs((a/b - c/d) - 24) < 0.001:
+                return(f'{a}/{b}-{c}/{d}')
+
+            elif c!=0 and abs((a-b/c)*d - 24) < 0.001:
+                return(f'({a}-{b}/{c})*{d}')
+
+            elif c!=0 and  abs((b/c-a)*d - 24) < 0.001:
+                return(f'({b}/{c}-{a})*{d}')
+
+            elif d!=0 and c!=0 and abs((a-b/c)/d - 24) < 0.001:
+                return(f'({a}-{b}/{c})/{d}')
+
+            elif c!=0 and d!=0 and  abs((b/c-a)/d - 24) < 0.001:
+                return(f'({a}-{b}/{c})/{d}')
+
+            elif c!=0 and d!=0 and (a-b/c)!=0 and abs(d/(a-b/c) - 24) < 0.001:
+                return(f'{d}/({a}-{b}/{c})')
+
+            elif c!=0 and (b/c-a)!=0 and abs(d/(b/c-a) - 24) < 0.001:
+                return(f'{d}/({a}-{b}/{c})')
+        return ''
+    
+    answer = tetrad(a,b,c,d)
+    if answer: 
+        return answer
+
+    else:
+        answer = frac_var(a,b,c,d)
+        if answer:
+            return answer
+         
+    return "It's not possible!"
